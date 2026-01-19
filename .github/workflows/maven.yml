@@ -1,0 +1,115 @@
+name: Java CI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    env:
+      IMAGE_NAME: tic_tac_toe
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+    steps:
+    # ----------------------------------------------------
+    # 1. Checkout
+    # ----------------------------------------------------
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    # ----------------------------------------------------
+    # 2. Setup Java
+    # ----------------------------------------------------
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    # ----------------------------------------------------
+    # 3. Linting
+    # ----------------------------------------------------
+    - name: Run Maven Checkstyle
+      run: mvn checkstyle:check
+      continue-on-error: true
+
+    # ----------------------------------------------------
+    # 4. SAST – CodeQL INIT
+    # ----------------------------------------------------
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: java
+
+    - name: Unit Test
+      run: mvn clean test
+
+    # ----------------------------------------------------
+    # 5. Build JAR
+    # ----------------------------------------------------
+    - name: Build with Maven
+      run: mvn clean package -DskipTests -B
+
+    # ----------------------------------------------------
+    # 6. CodeQL Analysis
+    # ----------------------------------------------------
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+
+    # ----------------------------------------------------
+    # 10. Build Docker Image
+    # ----------------------------------------------------
+    - name: Build Docker image
+      run: |
+        docker build \
+          -t $IMAGE_NAME:latest .
+
+    # ----------------------------------------------------
+    # 11. Test Docker Image
+    # ----------------------------------------------------
+    - name: Test Docker image runs
+      run: |
+         docker run --rm -i ${{ env.IMAGE_NAME }}:latest
+         sleep 10
+         docker stop tic_tac_toe
+             
+
+    # ----------------------------------------------------
+    # 12. Scan Docker Image with Trivy 
+    # ----------------------------------------------------
+    - name: Trivy image scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${ IMAGE_NAME }:latest
+        scan-type: image
+        format: table
+
+    # ----------------------------------------------------
+    # 13. Login to Docker Hub
+    # ----------------------------------------------------
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # ----------------------------------------------------
+    # 14. Tag Docker Image for Docker Hub
+    # ----------------------------------------------------
+    - name: Tag image for Docker Hub
+      run: |
+        docker tag ${IMAGE_NAME}:latest ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+    
+    # ----------------------------------------------------
+    # 15. Push Docker Image
+    # ----------------------------------------------------
+    - name: Push Docker image
+      run: |
+        docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
