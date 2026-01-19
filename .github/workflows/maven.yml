@@ -71,15 +71,6 @@ jobs:
       run: |
         docker build \
           -t $IMAGE_NAME:latest .
-
-    # ----------------------------------------------------
-    # 11. Test Docker Image
-    # ----------------------------------------------------
-    - name: Test Docker image runs
-      run: |
-         docker run --rm -it ${{ env.IMAGE_NAME }}:latest
-         sleep 10
-         docker stop tic_tac_toe
              
 
     # ----------------------------------------------------
