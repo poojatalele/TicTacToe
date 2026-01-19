@@ -9,6 +9,7 @@ jobs:
   build_ci:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
 
