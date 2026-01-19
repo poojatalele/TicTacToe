@@ -77,7 +77,7 @@ jobs:
     # ----------------------------------------------------
     - name: Test Docker image runs
       run: |
-         docker run --rm -i ${{ env.IMAGE_NAME }}:latest
+         docker run --rm -it ${{ env.IMAGE_NAME }}:latest
          sleep 10
          docker stop tic_tac_toe
              
