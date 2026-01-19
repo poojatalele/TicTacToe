@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tictactoe-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tictactoe
+  template:
+    metadata:
+      labels:
+        app: tictactoe
+    spec:
+      containers:
+        - name: tictactoe
+          image: poojatalele/tictactoe:latest
+          stdin: true
+          tty: true
